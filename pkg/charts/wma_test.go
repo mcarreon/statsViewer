@@ -1,4 +1,4 @@
-package main
+package charts
 
 import (
 	"testing"

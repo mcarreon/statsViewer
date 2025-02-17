@@ -1,7 +1,9 @@
-package main
+package charts
+
+import "statsViewer/pkg/models"
 
 // TODO: Make this configurable
-const DefaultWMAWindow = 7
+const defaultWMAWindow = 7
 
 type WeightedMovingAverage struct {
 	N int
@@ -45,4 +47,16 @@ func (wma *WeightedMovingAverage) Average() (float64, int) {
 
 	avg := sum / float64(weightTotal)
 	return avg, count
+}
+
+func CalculateWMA(scenario *models.Scenario) {
+	wma := NewWMA(defaultWMAWindow)
+	for _, dateScores := range scenario.ByDateScores {
+		for date, scores := range dateScores {
+			wma.Add(scores...)
+			avg, count := wma.Average()
+			dateWMA := models.DateWMA{Avg: float64(int(avg*10)) / 10, Grouped: count}
+			scenario.ByDateWMA = append(scenario.ByDateWMA, map[string]models.DateWMA{date: dateWMA})
+		}
+	}
 }

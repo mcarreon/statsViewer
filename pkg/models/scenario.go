@@ -1,4 +1,4 @@
-package main
+package models
 
 import "html/template"
 
@@ -17,7 +17,7 @@ type DateWMA struct {
 
 // Scenario contains all the scenario data including challenges.
 type Scenario struct {
-	fileName       string
+	FileName       string
 	Name           string
 	TimesPlayed    int
 	Challenges     []Challenge

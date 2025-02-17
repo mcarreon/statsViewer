@@ -1,10 +1,12 @@
-package main
+package models
 
 import (
 	"fmt"
 	"io/ioutil"
 	"os"
 	"reflect"
+	"statsViewer"
+	extractor2 "statsViewer/pkg/extractor"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -15,7 +17,7 @@ var date = "2020.11.13"
 var timeScen = "22.08.18"
 var datetime = fmt.Sprintf("%s-%s", date, timeScen)
 var testFileName = fmt.Sprintf("%s - Challenge - %s Stats.csv", testScenName, datetime)
-var testFilePath = StatsPath + testFileName
+var testFilePath = main.StatsPath + testFileName
 
 func TestStatsParse(t *testing.T) {
 	// Create test file
@@ -23,7 +25,7 @@ func TestStatsParse(t *testing.T) {
 	defer os.Remove(testFilePath)
 	// Add data
 	file, error := os.OpenFile(testFilePath, os.O_WRONLY|os.O_APPEND, 0777)
-	Check(error)
+	main.Check(error)
 	defer file.Close()
 	_, err := file.WriteString(`
 	Kills:,99
@@ -53,10 +55,10 @@ func TestStatsParse(t *testing.T) {
 	Crosshair Scale:,1.0
 	Crosshair Color:,FFFF00
 	`)
-	Check(err)
+	main.Check(err)
 
 	fi, err := os.Stat(testFilePath)
-	Check(err)
+	main.Check(err)
 
 	files := []os.FileInfo{fi}
 	stats := ParseStats(files)
@@ -128,7 +130,7 @@ func TestStatsParse(t *testing.T) {
 
 func TestExtractDate(t *testing.T) {
 	challenge := Challenge{}
-	extractor := Extract{
+	extractor := extractor2.Extract{
 		fileName:  testFileName,
 		challenge: &challenge,
 	}

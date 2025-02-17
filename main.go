@@ -1,50 +1,53 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
+	"statsViewer/internal"
+	"statsViewer/kovaaks"
 	"text/template"
 	"time"
 )
 
-var statsViewer = "StatsViewer"
-var statsViewerHTML = statsViewer + ".html"
-
-// StatsPath ...
-var StatsPath, statsNotFound = GetStatsPath()
-
 func main() {
 	defer func() {
-		if error := recover(); error != nil {
-			fmt.Println("Error:", error)
+		if err := recover(); err != nil {
+			fmt.Println("Error:", err)
 			EnterToExit()
 		}
 	}()
 
 	start := time.Now()
 
-	files, err := ioutil.ReadDir(StatsPath)
+	client, err := kovaaks.New()
 	if err != nil {
-		if StatsPath == DefaultPath {
-			cwd, err := os.Getwd()
-			Check(err)
-			StatsPath = "Current working directory " + cwd
-		}
-		log.Printf("Error: %v \"stats\" folder not found, make sure the path is right, %v", statsNotFound, StatsPath)
+		log.Printf("failed to initialize kovaaks client: %v", err)
 		EnterToExit()
 	}
-	fmt.Println("\"stats\" folder found!\nParsing files... This may take a few minutes!")
 
-	stats := ParseStats(files)
+	playlists, err := client.GetPlaylists()
+	if err != nil {
+		log.Printf("failed to get playlists: %v", err)
+		EnterToExit()
+	}
+
+	playlist := getPlaylistFromUser(playlists)
+	fmt.Println("Playlist selected:", playlist)
+
+	stats, err := client.ParseStats(playlist)
+	if err != nil {
+		log.Printf("failed to parse stats: %v", err)
+		EnterToExit()
+	}
 	fmt.Println("Files parsed. Creating HTML file...")
 
 	// Output HTML
 	t, err := template.ParseFiles("static/statsViewerTpl.html")
 	Check(err)
-	f, err := os.Create(statsViewerHTML)
+	f, err := os.Create(internal.StatsViewerHTML)
 	Check(err)
 	err = t.Execute(f, stats)
 	Check(err)
@@ -52,5 +55,12 @@ func main() {
 
 	fmt.Println("Success!")
 	fmt.Println(time.Now().Sub(start))
-	exec.Command("cmd", "/C", "start", statsViewerHTML).Run()
+	exec.Command("cmd", "/C", "start", internal.StatsViewerHTML).Run()
+}
+
+// EnterToExit ...
+func EnterToExit() {
+	log.Println("Press \"enter\" key to exit.")
+	bufio.NewReader(os.Stdin).ReadBytes('\n')
+	os.Exit(1)
 }

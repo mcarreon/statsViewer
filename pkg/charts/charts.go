@@ -1,53 +1,53 @@
-package main
+package charts
 
 import (
 	"fmt"
+	charts2 "github.com/go-echarts/go-echarts/v2/charts"
+	"github.com/go-echarts/go-echarts/v2/opts"
 	"html/template"
 	"sort"
+	"statsViewer/pkg/models"
 	"strconv"
 	"strings"
-
-	"github.com/go-echarts/go-echarts/v2/charts"
-	"github.com/go-echarts/go-echarts/v2/opts"
 )
 
 // ScenarioLineChart ...
-func ScenarioLineChart(scen *Scenario) template.HTML {
-	line := charts.NewLine()
+func ScenarioLineChart(scen *models.Scenario) template.HTML {
+	line := charts2.NewLine()
 	line.Renderer = newSnippetRenderer(line, line.Validate)
 	line.SetGlobalOptions(chartGlobalOpts(max, scen.Name, len(scen.ByDateMax), scen.Highscore, scen.LowestAvgScore))
 
-	maxDates := []string{}
-	maxScores := []opts.LineData{}
+	var maxDates []string
+	var maxScores []opts.LineData
 	for _, dateScore := range scen.ByDateMax {
 		for date, chall := range dateScore {
-			maxDates = append(maxDates, SimplifyDate(date))
+			maxDates = append(maxDates, simplifyDate(date))
 			maxScores = append(maxScores, opts.LineData{
-				Name:  fmt.Sprintf("%v: %v. FOV: %v. %v", SimplifyDate(date), chall.Score, chall.FOV, chall.SensStr()),
+				Name:  fmt.Sprintf("%v: %v. FOV: %v. %v", simplifyDate(date), chall.Score, chall.FOV, chall.SensStr()),
 				Value: chall.Score,
 			})
 		}
 	}
 
-	avgDates := []string{}
-	avgScores := []opts.LineData{}
+	var avgDates []string
+	var avgScores []opts.LineData
 	for _, dateScore := range scen.ByDateAvg {
 		for date, data := range dateScore {
-			avgDates = append(avgDates, SimplifyDate(date))
+			avgDates = append(avgDates, simplifyDate(date))
 			avgScores = append(avgScores, opts.LineData{
-				Name:  fmt.Sprintf("%v: %v. Grouped: %v", SimplifyDate(date), data.Score, data.Grouped),
+				Name:  fmt.Sprintf("%v: %v. Grouped: %v", simplifyDate(date), data.Score, data.Grouped),
 				Value: data.Score,
 			})
 		}
 	}
 
-	wmaDates := []string{}
-	wmaScores := []opts.LineData{}
+	var wmaDates []string
+	var wmaScores []opts.LineData
 	for _, dateScore := range scen.ByDateWMA {
 		for date, dateWMA := range dateScore {
-			wmaDates = append(wmaDates, SimplifyDate(date))
+			wmaDates = append(wmaDates, simplifyDate(date))
 			wmaScores = append(wmaScores, opts.LineData{
-				Name:  fmt.Sprintf("%v: %v. Grouped: %v", SimplifyDate(date), dateWMA.Avg, dateWMA.Grouped),
+				Name:  fmt.Sprintf("%v: %v. Grouped: %v", simplifyDate(date), dateWMA.Avg, dateWMA.Grouped),
 				Value: dateWMA.Avg,
 			})
 		}
@@ -56,7 +56,7 @@ func ScenarioLineChart(scen *Scenario) template.HTML {
 	line.SetXAxis(maxDates).
 		AddSeries("Max scores", maxScores).
 		AddSeries("Average scores", avgScores).
-		AddSeries(strconv.Itoa(DefaultWMAWindow)+"-day moving average", wmaScores).
+		AddSeries(strconv.Itoa(defaultWMAWindow)+"-day moving average", wmaScores).
 		SetSeriesOptions(seriesOpts...)
 
 	return renderToHTML(line)
@@ -64,11 +64,11 @@ func ScenarioLineChart(scen *Scenario) template.HTML {
 
 // PerformanceChart ...
 func PerformanceChart(uniqueDays *map[string]int) template.HTML {
-	progress := charts.NewLine()
+	progress := charts2.NewLine()
 	progress.Renderer = newSnippetRenderer(progress, progress.Validate)
 
 	// Order map by date
-	orderedDates := []map[string]int{}
+	var orderedDates []map[string]int
 	for k, v := range *uniqueDays {
 		orderedDates = append(orderedDates, map[string]int{k: v})
 	}
@@ -85,8 +85,8 @@ func PerformanceChart(uniqueDays *map[string]int) template.HTML {
 	})
 
 	lowestAvgPb := 99
-	dates := []string{}
-	avgPercentagePBs := []opts.LineData{}
+	var dates []string
+	var avgPercentagePBs []opts.LineData
 	for _, dateAndAvgPercentagePB := range orderedDates {
 		for date, avgPercentagePB := range dateAndAvgPercentagePB {
 			if avgPercentagePB <= 0 {
@@ -95,26 +95,26 @@ func PerformanceChart(uniqueDays *map[string]int) template.HTML {
 			if lowestAvgPb > avgPercentagePB {
 				lowestAvgPb = avgPercentagePB
 			}
-			dates = append(dates, SimplifyDate(date))
+			dates = append(dates, simplifyDate(date))
 			avgPercentagePBs = append(avgPercentagePBs, opts.LineData{
-				Name:  SimplifyDate(date) + " " + strconv.Itoa(avgPercentagePB) + "%",
+				Name:  simplifyDate(date) + " " + strconv.Itoa(avgPercentagePB) + "%",
 				Value: avgPercentagePB,
 			})
 		}
 	}
 
 	progress.SetGlobalOptions(
-		charts.WithTitleOpts(opts.Title{
+		charts2.WithTitleOpts(opts.Title{
 			Title:    "Experimental performance tracker",
 			Subtitle: "Data points are average scores for every scenario played that day, converted into a percentage of your current highscore.",
 		}),
-		charts.WithYAxisOpts(opts.YAxis{
+		charts2.WithYAxisOpts(opts.YAxis{
 			Type:      "value",
 			Max:       100,
 			Min:       10 * (lowestAvgPb / 10),
 			AxisLabel: &yAxisLabelFormatter,
 		}),
-		charts.WithTooltipOpts(opts.Tooltip{
+		charts2.WithTooltipOpts(opts.Tooltip{
 			Trigger:   "axis",
 			TriggerOn: "mousemove|click",
 			Show:      true,
@@ -135,13 +135,13 @@ func PerformanceChart(uniqueDays *map[string]int) template.HTML {
 var max = "max"
 var avg = "avg"
 
-var seriesOpts = []charts.SeriesOpts{
-	charts.WithLabelOpts(opts.Label{Show: true, Color: "black"}),
-	charts.WithLineChartOpts(opts.LineChart{Smooth: true}),
+var seriesOpts = []charts2.SeriesOpts{
+	charts2.WithLabelOpts(opts.Label{Show: true, Color: "black"}),
+	charts2.WithLineChartOpts(opts.LineChart{Smooth: true}),
 }
 
-func titleOpts(scenName string, length int) charts.GlobalOpts {
-	return charts.WithTitleOpts(opts.Title{
+func titleOpts(scenName string, length int) charts2.GlobalOpts {
+	return charts2.WithTitleOpts(opts.Title{
 		Title:    scenName,
 		Subtitle: fmt.Sprintf("Grouped by day, %v datapoints.", length),
 	})
@@ -168,14 +168,14 @@ func toolBoxFeatures(fileName string) *opts.ToolBoxFeature {
 }
 
 // ToolBoxOpts ...
-func ToolBoxOpts(fileName string) charts.GlobalOpts {
-	return charts.WithToolboxOpts(opts.Toolbox{
+func ToolBoxOpts(fileName string) charts2.GlobalOpts {
+	return charts2.WithToolboxOpts(opts.Toolbox{
 		Show:    true,
 		Feature: toolBoxFeatures(fileName),
 	})
 }
 
-var tooltipOpts = charts.WithTooltipOpts(opts.Tooltip{
+var tooltipOpts = charts2.WithTooltipOpts(opts.Tooltip{
 	Trigger:   "item",
 	TriggerOn: "mousemove|click",
 	Show:      true,
@@ -186,14 +186,14 @@ var xAxisLabelFormatter = opts.AxisLabel{
 	Rotate: 45,
 }
 
-var xAxisOpts = charts.WithXAxisOpts(opts.XAxis{
+var xAxisOpts = charts2.WithXAxisOpts(opts.XAxis{
 	AxisLabel: &xAxisLabelFormatter,
 })
 
 var yAxisLabelFormatter = opts.AxisLabel{}
 
-func yAxisOpts(highscore, lowestAvg float64) charts.GlobalOpts {
-	return charts.WithYAxisOpts(opts.YAxis{
+func yAxisOpts(highscore, lowestAvg float64) charts2.GlobalOpts {
+	return charts2.WithYAxisOpts(opts.YAxis{
 		Type:      "value",
 		Max:       10 * ((int(highscore*1.05) + 9) / 10),
 		Min:       10 * (int(lowestAvg*0.95) / 10),
@@ -201,14 +201,34 @@ func yAxisOpts(highscore, lowestAvg float64) charts.GlobalOpts {
 	})
 }
 
-var legendOpts = charts.WithLegendOpts(opts.Legend{
+var legendOpts = charts2.WithLegendOpts(opts.Legend{
 	Show: true,
 })
 
-var initOpts = charts.WithInitializationOpts(opts.Initialization{
+var initOpts = charts2.WithInitializationOpts(opts.Initialization{
 	AssetsHost: "static/",
 })
 
-func chartGlobalOpts(groupedBy string, scenName string, length int, hs float64, ls float64) (charts.GlobalOpts, charts.GlobalOpts, charts.GlobalOpts, charts.GlobalOpts, charts.GlobalOpts, charts.GlobalOpts, charts.GlobalOpts) {
+func chartGlobalOpts(groupedBy string, scenName string, length int, hs float64, ls float64) (charts2.GlobalOpts, charts2.GlobalOpts, charts2.GlobalOpts, charts2.GlobalOpts, charts2.GlobalOpts, charts2.GlobalOpts, charts2.GlobalOpts) {
 	return titleOpts(scenName, length), ToolBoxOpts(scenName), tooltipOpts, xAxisOpts, yAxisOpts(hs, ls), legendOpts, initOpts
+}
+
+// simplifyDate ...
+func simplifyDate(d string) string {
+	sep := "/"
+	d = strings.ReplaceAll(d, ".", sep)
+	d = reorderDate(d, sep)
+	d = strings.ReplaceAll(d, "2018", "18")
+	d = strings.ReplaceAll(d, "2019", "19")
+	d = strings.ReplaceAll(d, "2020", "20")
+	d = strings.ReplaceAll(d, "/2021", "")
+
+	return d
+}
+
+func reorderDate(d, sep string) string {
+	dateUnits := strings.Split(d, sep)
+	dateUnits[0], dateUnits[1], dateUnits[2] = dateUnits[1], dateUnits[2], dateUnits[0]
+
+	return strings.Join(dateUnits, sep)
 }

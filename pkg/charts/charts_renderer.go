@@ -1,4 +1,4 @@
-package main
+package charts
 
 import (
 	"bytes"
@@ -19,7 +19,9 @@ import (
 
 // Get assets removed from baseTpl to not get it for each chart
 // {{- range .JSAssets.Values }}
-//    <script src="{{ . }}"></script>
+//
+//	<script src="{{ . }}"></script>
+//
 // {{- end }}
 var baseTpl = `
 <div class="container">

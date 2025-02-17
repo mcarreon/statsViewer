@@ -1,18 +1,18 @@
-package main
+package charts
 
 import (
 	"fmt"
+	charts2 "github.com/go-echarts/go-echarts/v2/charts"
+	"github.com/go-echarts/go-echarts/v2/opts"
 	"html/template"
 	"sort"
+	"statsViewer/pkg/models"
 	"strings"
-
-	"github.com/go-echarts/go-echarts/v2/charts"
-	"github.com/go-echarts/go-echarts/v2/opts"
 )
 
-func getWords(scens *map[string]*Scenario) []string {
+func getWords(scenarios *map[string]*models.Scenario) []string {
 	var b strings.Builder
-	for name := range *scens {
+	for name := range *scenarios {
 		fmt.Fprintf(&b, "%v ", name)
 	}
 
@@ -26,7 +26,7 @@ func filterWords(words []string) []string {
 		"LR", "Wrist)", "55", "49", "15", "65", "37", "28", "(Smooth", "12", "57", "is", "ar", "es", "cata", "very",
 		"acc", "beta", "01", "13", "62", "5s", "VL", "30", "59", "1T", "50", "SF"}
 
-	result := []string{}
+	var result []string
 	for i := len(words) - 1; i >= 0; i-- {
 		trimmedW := strings.Trim(words[i], "\t \n")
 
@@ -86,23 +86,22 @@ func generateWCData(data []map[string]int) []opts.WordCloudData {
 }
 
 // WordCloud ...
-func WordCloud(scens *map[string]*Scenario) template.HTML {
-	wc := charts.NewWordCloud()
+func WordCloud(scenarios *map[string]*models.Scenario) template.HTML {
+	wc := charts2.NewWordCloud()
 	wc.Renderer = newSnippetRenderer(wc, wc.Validate)
 	wc.SetGlobalOptions(ToolBoxOpts("wordcloud"))
 
-	words := getWords(scens)
+	words := getWords(scenarios)
 	filteredWords := filterWords(words)
 	weightedWords := wordOcurrences(filteredWords)
 	trimmed := sortAndRemoveWords(weightedWords)
 
 	wc.AddSeries("Word Cloud", generateWCData(trimmed)).
-		SetSeriesOptions(charts.WithWorldCloudChartOpts(
+		SetSeriesOptions(charts2.WithWorldCloudChartOpts(
 			opts.WordCloudChart{
 				SizeRange: []float32{12, 80},
 				Shape:     "circle",
 			}))
 
-	wordcloud := renderToHTML(wc)
-	return wordcloud
+	return renderToHTML(wc)
 }
